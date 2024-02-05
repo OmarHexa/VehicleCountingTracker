@@ -1,0 +1,6 @@
+/assets/*
+/videos/*
+
+/__pycache__/
+
+/Yolo-weights/
