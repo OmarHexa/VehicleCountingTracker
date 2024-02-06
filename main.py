@@ -1,10 +1,13 @@
 from ultralytics import YOLO
+from ultralytics.utils.plotting import *
 import cv2
 import math
 import time
 import numpy as np
 from sort import Sort  # Assuming 'sort.py' contains the implementation of the SORT tracker
 import cvzone
+import random
+
 
 WIDTH = 1280
 HIGHT = 720
@@ -32,41 +35,44 @@ def calculate_dimensions(x1, y1, x2, y2):
 def perform_detection(img, model, classNames):
     # Perform object detection using YOLO on the entire image
     results = model(img, stream=True)
-
+    # annotate = Annotator(img,line_width=1,font_size=2)
     # Initialize an empty array for detections
     detections = np.empty((0, 5))
 
     # Process YOLO results
     for r in results:
         boxes = r.boxes
-        for box in boxes:
+        masks = r.masks
+        for box,mask in zip(boxes,masks):
             # Extract bounding box coordinates
             x1, y1, x2, y2,_,_ = calculate_dimensions(*box.xyxy[0])
-
             # Extract confidence and class information
             conf = math.ceil((box.conf[0] * 100)) / 100
             cls = int(box.cls[0])
             currentClass = classNames[cls]
+            # annotate.box_label(box.xyxy[0],f"{currentClass}")
+            # annotate.draw_centroid_and_tracks(box.xyxy[0], color=(255, 0, 255), track_thickness=2)
 
             # Check if the detected object is a specific class and confidence is above a threshold
             if currentClass in ["car", "truck", "motorbike", "bus"] and conf > 0.3:
                 currentArray = np.array([x1, y1, x2, y2, conf])
+                # img = cv2.rectangle(img,(x1,y1),(x2,y2),(0,0,255), 3)
                 detections = np.vstack((detections, currentArray))
 
     return detections
 
 
 
-def perform_counting(img, tracker, detections,limits,totalcount):
+def perform_counting(img, tracker, detections,limits,totalcount,colors):
     # Update the SORT tracker with the detections
     resultsTracker = tracker.update(detections)
-
     # Process and display the tracked results
     for result in resultsTracker:
         *_, id = result
-        x1,y1,_,_,w,h = calculate_dimensions(*result[:-1])
+        x1,y1,x2,y2,w,h = calculate_dimensions(*result[:-1])
         # Draw a rectangle around the tracked object
-        cvzone.cornerRect(img, (x1, y1, w, h), t=2, l=5, colorC=(0, 0, 255), colorR=(0, 255, 0))
+        # cvzone.cornerRect(img, (x1, y1, w, h), t=2, l=5, colorC=(0, 0, 255), colorR=(0, 255, 0))
+        cv2.rectangle(img,(x1,y1),(x2,y2),(colors[int(id) % len(colors)]), 3)
 
         # Display the object ID near the tracked object
         cvzone.putTextRect(img, f' {int(id)}', (max(0, x1), max(35, y1)), colorR=(128, 128, 128),
@@ -80,10 +86,11 @@ def perform_counting(img, tracker, detections,limits,totalcount):
                 cv2.line(img,(limits[0],limits[1]),(limits[2],limits[3]),(0,255,0),3)
     return None
 
-def count_cars(video,line,resolution):
+def count_vehicles(video,line,resolution):
 
      # Load the YOLO model
-    model = YOLO('./Yolo-weights/yolov8n.pt')
+    model = YOLO('./Yolo-weights/yolov8n-seg.pt')
+    model.fuse()
     # Initialize the SORT tracker
     tracker = Sort(max_age=20, min_hits=3, iou_threshold=0.3)
     # co-ordinates of the count line
@@ -93,6 +100,7 @@ def count_cars(video,line,resolution):
     # Initialize variables for frame timing
     prev_frame_time = 0
     new_frame_time = 0
+    colors = [(random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)) for j in range(10)]
 
     # Main loop for video processing
     while True:
@@ -110,7 +118,7 @@ def count_cars(video,line,resolution):
         detections = perform_detection(masked_img, model=model,classNames=classNames)
 
         # Perform object tracking and update the image
-        perform_counting(img, tracker, detections,line,totalcount)
+        perform_counting(img, tracker, detections,line,totalcount,colors)
         
 
         cv2.line(img,(detectionLine[0],detectionLine[1]),(detectionLine[2],detectionLine[3]),(0,0,255),3)
@@ -151,7 +159,7 @@ if __name__ == "__main__":
     resolution = (WIDTH, HIGHT)
     detectionLine = [190, 701, 1086, 701]
 
-    count_cars(cap,detectionLine,resolution)
+    count_vehicles(cap,detectionLine,resolution)
     # Release the video capture object and close all OpenCV windows
     cap.release()
     cv2.destroyAllWindows()
