@@ -9,3 +9,8 @@ scikit-image-0.22.0
 # replacement for lap, due to cpython problem
 lapx==0.5.5
 filterpy-1.4.5
+
+
+
+
+streamlit-webrtc>=0.47.1
