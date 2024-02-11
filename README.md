@@ -1,6 +1,7 @@
 
 ## Introduction
 This project is a car counting system that utilizes YOLO (You Only Look Once) for object detection and the SORT (Simple Online and Realtime Tracking) algorithm for object tracking. The system counts the number of cars passing a specified detection line in a video feed. 
+
 ![Vehicle Counting System Demo](vehicle_count.gif)
 
 ## Prerequisites
@@ -16,13 +17,13 @@ Make sure you have the required dependencies installed:
 1. Clone the repository:
 
    ```bash
-   git clone https://github.com/your-username/your-repository.git
+   git clone https://github.com/your-username/VehicleCountingTracker.git
    ```
 
 2. Navigate to the project directory:
 
    ```bash
-   cd your-repository
+   cd VehicleCountingTracker
    ```
 
 3. Install the required dependencies:
